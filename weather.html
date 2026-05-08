@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>날씨</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── 라이트 모드 (기본) ── */
+body {
+  --bg:                  #f0f5fa;
+  --text-primary:        #1a2332;
+  --text-sub:            rgba(26,35,50,0.5);
+  --text-muted:          rgba(26,35,50,0.35);
+  --tab-inactive-bg:     rgba(0,0,0,0.06);
+  --tab-inactive-color:  rgba(26,35,50,0.45);
+  --tab-inactive-border: rgba(0,0,0,0.1);
+  --section-title-color: rgba(0,0,0,0.32);
+  --status-color:        rgba(0,0,0,0.4);
+  --hour-label-color:    rgba(0,0,0,0.45);
+  --tomorrow-tag-color:  rgba(0,0,0,0.3);
+  --week-day-color:      rgba(0,0,0,0.6);
+  --week-max-color:      #1a2332;
+  --week-min-color:      rgba(0,0,0,0.38);
+  --precip-high:         #1e7aaa;
+  --precip-mid:          rgba(0,0,0,0.35);
+  --precip-low:          rgba(0,0,0,0.2);
+  --precip-zero:         rgba(0,0,0,0.15);
+  --bar-default:         rgba(0,0,0,0.13);
+  --theme-btn-bg:        rgba(0,0,0,0.07);
+  --theme-btn-color:     rgba(26,35,50,0.6);
+
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  transition: background 0.25s, color 0.25s;
+}
+
+/* ── 다크 모드 ── */
+body.dark {
+  --bg:                  #0f1923;
+  --text-primary:        #fff;
+  --text-sub:            rgba(255,255,255,0.5);
+  --text-muted:          rgba(255,255,255,0.4);
+  --tab-inactive-bg:     rgba(255,255,255,0.08);
+  --tab-inactive-color:  rgba(255,255,255,0.5);
+  --tab-inactive-border: rgba(255,255,255,0.12);
+  --section-title-color: rgba(255,255,255,0.4);
+  --status-color:        rgba(255,255,255,0.5);
+  --hour-label-color:    rgba(255,255,255,0.55);
+  --tomorrow-tag-color:  rgba(255,255,255,0.35);
+  --week-day-color:      rgba(255,255,255,0.7);
+  --week-max-color:      #fff;
+  --week-min-color:      rgba(255,255,255,0.45);
+  --precip-high:         #60aadd;
+  --precip-mid:          rgba(255,255,255,0.45);
+  --precip-low:          rgba(255,255,255,0.25);
+  --precip-zero:         rgba(255,255,255,0.18);
+  --bar-default:         rgba(255,255,255,0.25);
+  --theme-btn-bg:        rgba(255,255,255,0.08);
+  --theme-btn-color:     rgba(255,255,255,0.6);
+}
+
+.app {
+  width: 100%;
+  max-width: 390px;
+  padding: 0 0 40px;
+}
+
+/* ── 상단 바 (탭 + 테마 버튼) ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 16px 0;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.tab.active {
+  background: #1e7aaa;
+  color: #fff;
+}
+
+.tab.inactive {
+  background: var(--tab-inactive-bg);
+  color: var(--tab-inactive-color);
+  border: 1px solid var(--tab-inactive-border);
+}
+
+.theme-btn {
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  background: var(--theme-btn-bg);
+  color: var(--theme-btn-color);
+  font-size: 17px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+/* ── 헤더 ── */
+.header { padding: 16px 16px 8px; }
+
+.location-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.date-label {
+  font-size: 14px;
+  color: var(--text-sub);
+  margin-top: 2px;
+}
+
+/* ── 섹션 공통 ── */
+.section-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--section-title-color);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 16px;
+  margin-bottom: 8px;
+  margin-top: 24px;
+}
+
+/* ── 섹션 1: 어제/오늘 ── */
+.compare-card {
+  margin: 0 16px;
+  border-radius: 16px;
+  padding: 20px;
+  transition: background 0.4s;
+}
+
+.compare-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.compare-day { display: flex; flex-direction: column; }
+
+.day-label {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 4px;
+}
+
+.day-temp-max {
+  font-size: 48px;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1;
+}
+
+.day-desc {
+  font-size: 14px;
+  color: rgba(255,255,255,0.65);
+  margin-top: 4px;
+}
+
+.day-temp-min {
+  font-size: 14px;
+  color: rgba(255,255,255,0.65);
+  margin-top: 2px;
+}
+
+.diff-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.diff-up   { background: rgba(255,120,50,0.25);  color: #ff9060; }
+.diff-down { background: rgba(80,140,220,0.25);  color: #80b8f0; }
+
+/* ── 섹션 2: 시간대별 ── */
+.hourly-scroll {
+  overflow-x: auto;
+  padding: 0 16px 8px;
+  scrollbar-width: none;
+}
+.hourly-scroll::-webkit-scrollbar { display: none; }
+
+.hourly-inner {
+  display: flex;
+  gap: 0;
+  position: relative;
+}
+
+.hour-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+  padding: 0 4px;
+  position: relative;
+}
+
+.hour-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--hour-label-color);
+  margin-bottom: 4px;
+  height: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.hour-label.now-label { color: #ff9060; }
+
+.tomorrow-tag {
+  font-size: 10px;
+  color: var(--tomorrow-tag-color);
+  margin-bottom: 1px;
+}
+
+.hour-icon {
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.hour-precip {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+/* ── 섹션 3: 주간 ── */
+.weekly-grid {
+  display: flex;
+  padding: 0 8px;
+  gap: 0;
+}
+
+.week-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 3px;
+}
+
+.week-day {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--week-day-color);
+  margin-bottom: 4px;
+}
+
+.week-day.today { color: #ff9060; }
+
+.week-icon { font-size: 16px; margin-bottom: 6px; }
+
+.week-temp-max {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--week-max-color);
+  margin-top: 5px;
+}
+
+.week-temp-min {
+  font-size: 11px;
+  color: var(--week-min-color);
+  margin-top: 2px;
+}
+
+.week-precip {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 3px;
+}
+
+/* ── 로딩/에러 ── */
+.status-msg {
+  text-align: center;
+  padding: 80px 16px;
+  font-size: 15px;
+  color: var(--status-color);
+}
+
+/* ── 강수확률 색상 ── */
+.precip-high { color: var(--precip-high); }
+.precip-mid  { color: var(--precip-mid); }
+.precip-low  { color: var(--precip-low); }
+.precip-zero { color: var(--precip-zero); }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="topbar">
+    <div class="tabs">
+      <button class="tab active" id="tab-guro" onclick="switchLocation('구로')">구로</button>
+      <button class="tab inactive" id="tab-pyeongchon" onclick="switchLocation('평촌')">평촌</button>
+    </div>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="테마 전환">🌙</button>
+  </div>
+  <div id="content"><div class="status-msg">날씨 정보를 불러오는 중...</div></div>
+</div>
+
+<script>
+const LOCATIONS = {
+  '구로':   { lat: 37.4954, lon: 126.8874 },
+  '평촌':   { lat: 37.3894, lon: 126.9528 },
+};
+
+const WX_MAP = {
+  0:  { text: '맑음',       emoji: '☀️' },
+  1:  { text: '대체로 맑음', emoji: '🌤️' },
+  2:  { text: '구름 조금',   emoji: '⛅' },
+  3:  { text: '흐림',       emoji: '☁️' },
+  45: { text: '안개',       emoji: '🌫️' },
+  48: { text: '안개',       emoji: '🌫️' },
+  51: { text: '이슬비',     emoji: '🌦️' },
+  53: { text: '이슬비',     emoji: '🌦️' },
+  55: { text: '이슬비',     emoji: '🌦️' },
+  61: { text: '비',         emoji: '🌧️' },
+  63: { text: '비',         emoji: '🌧️' },
+  65: { text: '비',         emoji: '🌧️' },
+  71: { text: '눈',         emoji: '🌨️' },
+  73: { text: '눈',         emoji: '🌨️' },
+  75: { text: '눈',         emoji: '🌨️' },
+  80: { text: '소나기',     emoji: '🌦️' },
+  81: { text: '소나기',     emoji: '🌦️' },
+  82: { text: '소나기',     emoji: '🌦️' },
+  95: { text: '뇌우',       emoji: '⛈️' },
+};
+
+function wxInfo(code) {
+  if (code === null || code === undefined) return { text: '—', emoji: '—' };
+  if (WX_MAP[code]) return WX_MAP[code];
+  if (code >= 51 && code <= 55) return WX_MAP[51];
+  if (code >= 61 && code <= 65) return WX_MAP[61];
+  if (code >= 71 && code <= 75) return WX_MAP[71];
+  if (code >= 80 && code <= 82) return WX_MAP[80];
+  return { text: '흐림', emoji: '☁️' };
+}
+
+function cardBg(code) {
+  if (code <= 1) return '#1e7aaa';
+  if (code <= 3) return '#3a5e78';
+  if ((code >= 61 && code <= 65) || (code >= 80 && code <= 82)) return '#2e3e50';
+  if (code >= 71 && code <= 75) return '#4a5e70';
+  return '#1a6a94';
+}
+
+function precipClass(p) {
+  if (!p || p === 0) return 'precip-zero';
+  if (p >= 50) return 'precip-high';
+  if (p >= 30) return 'precip-mid';
+  return 'precip-low';
+}
+
+function precipDisplay(p) {
+  if (!p || p === 0) return '<span class="precip-zero">—</span>';
+  return `<span class="${precipClass(p)}">${p}%</span>`;
+}
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['일','월','화','수','목','금','토'];
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+}
+
+/* ── localStorage 헬퍼 ── */
+function getStorage(key, def) {
+  try { const v = localStorage.getItem(key); return v !== null ? v : def; }
+  catch { return def; }
+}
+function setStorage(key, val) {
+  try { localStorage.setItem(key, val); } catch {}
+}
+
+/* ── 테마 ── */
+let currentTheme = getStorage('wx_theme', 'light');
+
+function applyTheme() {
+  if (currentTheme === 'dark') {
+    document.body.classList.add('dark');
+    document.getElementById('theme-btn').textContent = '☀️';
+  } else {
+    document.body.classList.remove('dark');
+    document.getElementById('theme-btn').textContent = '🌙';
+  }
+}
+
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setStorage('wx_theme', currentTheme);
+  applyTheme();
+  if (cachedDaily && cachedHourly) render(cachedDaily, cachedHourly);
+}
+
+/* ── 위치 탭 ── */
+let currentLocation = getStorage('wx_location', '구로');
+
+function updateTabs() {
+  document.getElementById('tab-guro').className       = 'tab ' + (currentLocation === '구로' ? 'active' : 'inactive');
+  document.getElementById('tab-pyeongchon').className = 'tab ' + (currentLocation === '평촌' ? 'active' : 'inactive');
+}
+
+function switchLocation(name) {
+  if (currentLocation === name) return;
+  currentLocation = name;
+  setStorage('wx_location', name);
+  updateTabs();
+  loadWeather();
+}
+
+/* ── API ── */
+let cachedDaily = null, cachedHourly = null;
+
+async function loadWeather() {
+  cachedDaily = cachedHourly = null;
+  document.getElementById('content').innerHTML = '<div class="status-msg">날씨 정보를 불러오는 중...</div>';
+  const { lat, lon } = LOCATIONS[currentLocation];
+  const dailyUrl  = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_probability_max&past_days=1&forecast_days=7&timezone=Asia%2FSeoul`;
+  const hourlyUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,weathercode&forecast_days=2&timezone=Asia%2FSeoul`;
+  try {
+    const [dailyRes, hourlyRes] = await Promise.all([fetch(dailyUrl), fetch(hourlyUrl)]);
+    const [daily, hourly] = await Promise.all([dailyRes.json(), hourlyRes.json()]);
+    cachedDaily = daily; cachedHourly = hourly;
+    render(daily, hourly);
+  } catch {
+    document.getElementById('content').innerHTML = '<div class="status-msg">날씨 데이터를 불러오지 못했습니다.</div>';
+  }
+}
+
+/* ── 렌더 ── */
+function render(daily, hourly) {
+  /* 테마에 따른 인라인 색상 토큰 */
+  const dark = currentTheme === 'dark';
+  const barDefault = dark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.13)';
+
+  const todayIdx  = 1;
+  const dates     = daily.daily.time;
+  const maxTemps  = daily.daily.temperature_2m_max;
+  const minTemps  = daily.daily.temperature_2m_min;
+  const wxCodes   = daily.daily.weathercode;
+  const precipMax = daily.daily.precipitation_probability_max;
+
+  const ystMax = maxTemps[0], ystMin = minTemps[0], ystCode = wxCodes[0];
+  const todMax = maxTemps[1], todMin = minTemps[1], todCode = wxCodes[1];
+
+  /* 섹션1 스케일 */
+  const s1All = [ystMax, ystMin, todMax, todMin];
+  const s1Min = Math.min(...s1All) - 2;
+  const s1Max = Math.max(...s1All) + 2;
+
+  /* 섹션3 스케일 */
+  const wkAll = [...maxTemps.slice(1,8), ...minTemps.slice(1,8)];
+  const wkMin = Math.min(...wkAll) - 2;
+  const wkMax = Math.max(...wkAll) + 2;
+
+  /* 섹션2 시간대 */
+  const hTimes  = hourly.hourly.time;
+  const hTemps  = hourly.hourly.temperature_2m;
+  const hPrecip = hourly.hourly.precipitation_probability;
+  const hCodes  = hourly.hourly.weathercode;
+
+  const now = new Date();
+  const nowH = now.getHours();
+  const todayStr = dates[todayIdx];
+
+  const nowISOPrefix = `${todayStr}T${String(nowH).padStart(2,'0')}:00`;
+  let nowHIdx = hTimes.findIndex(t => t === nowISOPrefix);
+  if (nowHIdx < 0) nowHIdx = hTimes.findIndex(t => t.startsWith(todayStr + 'T' + String(nowH).padStart(2,'0')));
+  if (nowHIdx < 0) nowHIdx = 0;
+
+  const hourStep = 3;
+  const snapNow  = Math.round(nowHIdx / hourStep) * hourStep;
+  const startIdx = Math.max(0, snapNow - 4 * hourStep);
+  const hourIndices = [];
+  for (let i = startIdx; i < hTimes.length && hourIndices.length < 9; i += hourStep) {
+    hourIndices.push(i);
+  }
+
+  const hAllTemps  = hourIndices.map(i => hTemps[i]).filter(v => v != null);
+  const hScaleMin  = Math.min(...hAllTemps) - 2;
+  const hScaleMax  = Math.max(...hAllTemps) + 2;
+
+  /* 헬퍼: 섹션1 바 px */
+  const BAR_H_S1 = 120;
+  function s1BarPx(tMax, tMin) {
+    const r = s1Max - s1Min || 1;
+    return { top: ((s1Max - tMax) / r) * BAR_H_S1, height: Math.max(((tMax - tMin) / r) * BAR_H_S1, 6) };
+  }
+  function s1LabelPx(t) { return ((s1Max - t) / (s1Max - s1Min || 1)) * BAR_H_S1; }
+
+  const ystBar = s1BarPx(ystMax, ystMin);
+  const todBar = s1BarPx(todMax, todMin);
+  const ystMaxTop = s1LabelPx(ystMax), ystMinTop = s1LabelPx(ystMin);
+  const todMaxTop = s1LabelPx(todMax), todMinTop = s1LabelPx(todMin);
+
+  /* 헬퍼: 섹션2 바 px */
+  const H_BAR_H = 80;
+  function hBarPx(t) {
+    const r = hScaleMax - hScaleMin || 1;
+    return { top: ((hScaleMax - t) / r) * H_BAR_H, height: Math.max(((t - hScaleMin) / r) * H_BAR_H, 6) };
+  }
+
+  /* 헬퍼: 섹션3 바 px */
+  const WK_BAR_H = 80;
+  function wkBarPx(tMax, tMin) {
+    const r = wkMax - wkMin || 1;
+    return { top: ((wkMax - tMax) / r) * WK_BAR_H, height: Math.max(((tMax - tMin) / r) * WK_BAR_H, 6) };
+  }
+
+  /* ── 섹션1 HTML ── */
+  const bgColor  = cardBg(todCode);
+  const todWx    = wxInfo(todCode), ystWx = wxInfo(ystCode);
+  const diffVal  = Math.round(todMax - ystMax);
+  const diffSign = diffVal >= 0 ? '+' : '';
+  const diffCls  = diffVal >= 0 ? 'diff-up' : 'diff-down';
+
+  /* ── 섹션2 HTML ── */
+  let hourColsHtml = '';
+  hourIndices.forEach((hi, idx) => {
+    const [datePart, timePart] = hTimes[hi].split('T');
+    const hr         = parseInt(timePart);
+    const isNow      = Math.abs(hi - nowHIdx) < hourStep / 2 + 0.5;
+    const isTomorrow = datePart !== todayStr;
+    const { top: bTop, height: bH } = hBarPx(hTemps[hi]);
+    const barColor  = isNow ? '#ff7830' : barDefault;
+    const colBg     = isNow ? 'background:rgba(255,120,50,0.08); border-radius:10px;' : '';
+
+    const labelHtml = isTomorrow
+      ? `<span class="tomorrow-tag">내일</span><span>${hr}시</span>`
+      : isNow
+        ? `<span style="color:#ff9060;font-weight:600">지금</span>`
+        : `<span>${hr}시</span>`;
+
+    hourColsHtml += `
+      <div class="hour-col" style="${colBg}" data-is-now="${isNow}">
+        <div class="hour-label ${isNow ? 'now-label' : ''}">${labelHtml}</div>
+        <div style="height:${H_BAR_H}px; position:relative; width:8px;">
+          <div style="position:absolute;left:0;right:0;top:${bTop.toFixed(1)}px;height:${bH.toFixed(1)}px;background:${barColor};border-radius:4px;"></div>
+        </div>
+        <div class="hour-icon">${wxInfo(hCodes[hi]).emoji}</div>
+        <div class="hour-precip">${precipDisplay(hPrecip[hi])}</div>
+      </div>`;
+  });
+
+  /* ── 섹션3 HTML ── */
+  const weekdays = ['일','월','화','수','목','금','토'];
+  let weekColsHtml = '';
+  for (let wi = 0; wi < 7; wi++) {
+    const di = todayIdx + wi;
+    if (di >= dates.length) break;
+    const d       = new Date(dates[di] + 'T00:00:00');
+    const isToday = wi === 0;
+    const tMax = maxTemps[di], tMin = minTemps[di];
+    const { top: bTop, height: bH } = wkBarPx(tMax, tMin);
+    const barColor = isToday ? '#ff7830' : barDefault;
+    const barW     = isToday ? '10px' : '6px';
+
+    weekColsHtml += `
+      <div class="week-col">
+        <div class="week-day ${isToday ? 'today' : ''}">${isToday ? '오늘' : weekdays[d.getDay()]}</div>
+        <div class="week-icon">${wxInfo(wxCodes[di]).emoji}</div>
+        <div style="height:${WK_BAR_H}px; position:relative; width:${barW};">
+          <div style="position:absolute;left:0;right:0;top:${bTop.toFixed(1)}px;height:${bH.toFixed(1)}px;background:${barColor};border-radius:5px;width:${barW};"></div>
+        </div>
+        <div class="week-temp-max">${Math.round(tMax)}°</div>
+        <div class="week-temp-min">${Math.round(tMin)}°</div>
+        <div class="week-precip">${precipDisplay(precipMax[di])}</div>
+      </div>`;
+  }
+
+  /* ── 조립 ── */
+  document.getElementById('content').innerHTML = `
+    <div class="header">
+      <div class="location-name">${currentLocation}</div>
+      <div class="date-label">${formatDate(todayStr)}</div>
+    </div>
+
+    <div class="section-title">어제 · 오늘</div>
+    <div class="compare-card" style="background:${bgColor};">
+      <div class="compare-top">
+        <div class="compare-day">
+          <div class="day-label">어제</div>
+          <div class="day-temp-max">${Math.round(ystMax)}°</div>
+          <div class="day-desc">${ystWx.text}</div>
+          <div class="day-temp-min">최저 ${Math.round(ystMin)}°</div>
+        </div>
+        <div class="compare-day" style="text-align:right;align-items:flex-end;display:flex;flex-direction:column;">
+          <div class="day-label">오늘</div>
+          <div class="day-temp-max">${Math.round(todMax)}°</div>
+          <div class="day-desc">${todWx.text}</div>
+          <div class="day-temp-min">최저 ${Math.round(todMin)}°</div>
+          <div class="diff-badge ${diffCls}">어제보다 ${diffSign}${diffVal}°</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:center;gap:28px;position:relative;height:${BAR_H_S1}px;">
+        <!-- 어제 바 -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:36px;position:relative;height:${BAR_H_S1}px;">
+            <span style="position:absolute;right:0;top:${(ystMaxTop-10).toFixed(0)}px;font-size:14px;font-weight:500;color:rgba(255,255,255,0.7);white-space:nowrap;">${Math.round(ystMax)}°</span>
+            <span style="position:absolute;right:0;top:${ystMinTop.toFixed(0)}px;font-size:14px;font-weight:500;color:rgba(255,255,255,0.55);white-space:nowrap;">${Math.round(ystMin)}°</span>
+          </div>
+          <div style="width:14px;height:${BAR_H_S1}px;position:relative;">
+            <div style="position:absolute;left:0;right:0;top:${ystBar.top.toFixed(1)}px;height:${ystBar.height.toFixed(1)}px;background:rgba(255,255,255,0.3);border-radius:7px;"></div>
+          </div>
+        </div>
+        <!-- 오늘 바 -->
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="width:14px;height:${BAR_H_S1}px;position:relative;">
+            <div style="position:absolute;left:0;right:0;top:${todBar.top.toFixed(1)}px;height:${todBar.height.toFixed(1)}px;background:rgba(255,255,255,0.9);border-radius:7px;"></div>
+          </div>
+          <div style="width:36px;position:relative;height:${BAR_H_S1}px;">
+            <span style="position:absolute;left:0;top:${(todMaxTop-10).toFixed(0)}px;font-size:14px;font-weight:500;color:#fff;white-space:nowrap;">${Math.round(todMax)}°</span>
+            <span style="position:absolute;left:0;top:${todMinTop.toFixed(0)}px;font-size:14px;font-weight:500;color:rgba(255,255,255,0.7);white-space:nowrap;">${Math.round(todMin)}°</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">시간대별</div>
+    <div class="hourly-scroll">
+      <div class="hourly-inner">${hourColsHtml}</div>
+    </div>
+
+    <div class="section-title">주간 예보</div>
+    <div class="weekly-grid">${weekColsHtml}</div>
+  `;
+
+  /* 현재 시각 컬럼으로 스크롤 */
+  setTimeout(() => {
+    const nowCol = document.querySelector('[data-is-now="true"]');
+    if (nowCol) {
+      const scroll = document.querySelector('.hourly-scroll');
+      scroll.scrollLeft = Math.max(0, nowCol.offsetLeft - scroll.clientWidth / 2 + nowCol.clientWidth / 2);
+    }
+  }, 50);
+}
+
+/* ── 초기화 ── */
+applyTheme();
+updateTabs();
+loadWeather();
+</script>
+</body>
+</html>
