@@ -317,6 +317,13 @@ body.dark {
 .precip-mid  { color: var(--precip-mid); }
 .precip-low  { color: var(--precip-low); }
 .precip-zero { color: var(--precip-zero); }
+
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 16px 0 8px;
+}
 </style>
 </head>
 <body>
@@ -329,6 +336,7 @@ body.dark {
     <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="테마 전환">🌙</button>
   </div>
   <div id="content"><div class="status-msg">날씨 정보를 불러오는 중...</div></div>
+  <div class="footer">© 2026 이현경</div>
 </div>
 
 <script>
