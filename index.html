@@ -449,15 +449,23 @@ function render(daily, hourly) {
     return { top: ((hScaleMax - t) / r) * H_BAR_H, height: Math.max(((t - hScaleMin) / r) * H_BAR_H, 15) };
   }
 
-  const WK_BAR_H = 320;
-  const maxWeekDiff = Math.max(...Array.from({length: 7}, (_, wi) => {
+  const WK_BAR_H = 200;
+  const wkMinTemps = Array.from({length: 7}, (_, wi) => {
     const di = todayIdx + wi;
-    return di < maxTemps.length ? maxTemps[di] - minTemps[di] : 0;
-  })) || 1;
+    return di < minTemps.length ? minTemps[di] : null;
+  }).filter(v => v !== null);
+  const wkMaxTemps = Array.from({length: 7}, (_, wi) => {
+    const di = todayIdx + wi;
+    return di < maxTemps.length ? maxTemps[di] : null;
+  }).filter(v => v !== null);
+  const wkGlobalMin = Math.min(...wkMinTemps);
+  const wkGlobalMax = Math.max(...wkMaxTemps);
+  const wkRange = wkGlobalMax - wkGlobalMin || 1;
   function wkBarPx(tMax, tMin) {
-    const diff = tMax - tMin;
-    const barH = Math.max((diff / maxWeekDiff) * WK_BAR_H, 20);
-    return { top: WK_BAR_H - barH, height: barH };
+    const barH = Math.max((tMax - tMin) / wkRange * WK_BAR_H, 20);
+    const barBottom = (tMin - wkGlobalMin) / wkRange * WK_BAR_H;
+    const barTop = Math.max(0, WK_BAR_H - barBottom - barH);
+    return { top: barTop, height: barH };
   }
 
   const bgColor  = cardBg(todCode);
