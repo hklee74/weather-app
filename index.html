@@ -144,7 +144,7 @@ body.dark {
 .compare-top {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 24px;
 }
 
@@ -443,16 +443,21 @@ function render(daily, hourly) {
   const ystMaxTop = s1LabelPx(ystMax), ystMinTop = s1LabelPx(ystMin);
   const todMaxTop = s1LabelPx(todMax), todMinTop = s1LabelPx(todMin);
 
-  const H_BAR_H = 80;
+  const H_BAR_H = 160;
   function hBarPx(t) {
     const r = hScaleMax - hScaleMin || 1;
-    return { top: ((hScaleMax - t) / r) * H_BAR_H, height: Math.max(((t - hScaleMin) / r) * H_BAR_H, 6) };
+    return { top: ((hScaleMax - t) / r) * H_BAR_H, height: Math.max(((t - hScaleMin) / r) * H_BAR_H, 15) };
   }
 
-  const WK_BAR_H = 160;
+  const WK_BAR_H = 320;
+  const maxWeekDiff = Math.max(...Array.from({length: 7}, (_, wi) => {
+    const di = todayIdx + wi;
+    return di < maxTemps.length ? maxTemps[di] - minTemps[di] : 0;
+  })) || 1;
   function wkBarPx(tMax, tMin) {
-    const r = wkMax - wkMin || 1;
-    return { top: ((wkMax - tMax) / r) * WK_BAR_H, height: Math.max(((tMax - tMin) / r) * WK_BAR_H, 20) };
+    const diff = tMax - tMin;
+    const barH = Math.max((diff / maxWeekDiff) * WK_BAR_H, 20);
+    return { top: WK_BAR_H - barH, height: barH };
   }
 
   const bgColor  = cardBg(todCode);
@@ -539,7 +544,7 @@ function render(daily, hourly) {
           <div class="day-desc">${ystWx.text}</div>
           <div class="day-temp-min">최저 ${Math.round(ystMin)}°</div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:center;padding:0 8px;">
+        <div style="display:flex;align-items:flex-start;justify-content:center;padding:24px 8px 0;">
           <i class="wi ${todWx.wiClass}" style="color:${todWx.wiColor};font-size:44px;"></i>
         </div>
         <div class="compare-day" style="text-align:right;align-items:flex-end;display:flex;flex-direction:column;">
